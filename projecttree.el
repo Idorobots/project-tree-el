@@ -63,3 +63,48 @@
                              (pt-goal-requirements goal)))))
     (or (not req)
         (reduce (lambda (a b) (and a b)) req))))
+
+(defun pt-goal-color (goal goals)
+  (cond ((pt-goal-done-p goal) pt-color-done)
+        ((pt-goal-started-p goal) pt-color-started)
+        ((pt-goal-init-p goal)
+         (if (pt-goal-available-p goal goals)
+             pt-color-available
+           pt-color-unavailable))))
+
+(defun pt-goal-fontcolor (goal goals)
+  (cond ((pt-goal-done-p goal) pt-fontcolor-done)
+        ((pt-goal-started-p goal) pt-fontcolor-started)
+        ((pt-goal-init-p goal)
+         (if (pt-goal-available-p goal goals)
+             pt-fontcolor-available
+           pt-fontcolor-unavailable))))
+
+(defun pt-goal-fillcolor (goal goals)
+  (if (pt-goal-last-p goal goals)
+      pt-fillcolor-last
+    pt-fillcolor-default))
+
+(defun pt-goal->dot (goal goals)
+  (format "\"%s\"[label=\"%s\", fillcolor=%s, color=%s, fontcolor=%s];\n%s"
+          (pt-goal-id goal)
+          (pt-goal-description goal)
+          (pt-goal-fillcolor goal goals)
+          (pt-goal-color goal goals)
+          (pt-goal-fontcolor goal goals)
+          (let ((id (pt-goal-id goal)))
+            (apply 'concat
+                   (mapcar (lambda (req)
+                             (format "\"%s\" -> \"%s\";\n"
+                                     req id))
+                           (pt-goal-requirements goal))))))
+
+(defun pt-goals->dot (goals)
+  (format "digraph PT {\n%s;\nedge[%s];\nnode[%s, fillcolor=%s, color=%s, fontcolor=%s];\n%s}"
+          pt-graph-style
+          pt-edge-style
+          pt-node-style pt-fillcolor-default pt-color-unavailable pt-fontcolor-unavailable
+          (apply 'concat
+                 (mapcar (lambda (g)
+                           (pt-goal->dot g goals))
+                         goals))))
