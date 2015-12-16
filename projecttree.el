@@ -1,5 +1,7 @@
 ;; A bunch of functions for general project tracking & productivity enhencement.
 
+(require 'cl)
+
 (defvar pt-state-init 'init)
 (defvar pt-state-started 'started)
 (defvar pt-state-done 'done)
@@ -48,10 +50,7 @@
   (equal (pt-goal-state goal) pt-state-done))
 
 (defun pt-goal-last-p (goal goals)
-  (not (member (pt-goal-id goal)
-               (apply 'append
-                      (mapcar 'pt-goal-requirements
-                              goals))))) ;; FIXME Remove duplicates
+  (not (pt-goal-parents goal goals)))
 
 (defun pt-goal-unavailable-p (goal goals)
   (not (pt-goal-available-p goal goals)))
@@ -63,6 +62,12 @@
                              (pt-goal-requirements goal)))))
     (or (not req)
         (reduce (lambda (a b) (and a b)) req))))
+
+(defun pt-goal-parents (goal goals)
+  (let ((id (pt-goal-id goal)))
+    (remove-if-not (lambda (g)
+                     (member id (pt-goal-requirements g)))
+                   goals)))
 
 (defun pt-goal-color (goal goals)
   (cond ((pt-goal-done-p goal) pt-color-done)
