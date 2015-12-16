@@ -1,3 +1,47 @@
-* Project Tree
+* Project Trees
 
 A bunch of ELisp functions for project planning, tracking and general productivity enhencement.
+
+** Setup
+Add this to your Emacs config:
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "path/to/pt.el")
+(require 'pt)
+#+END_SRC
+
+** Basic usage
+At the moment you can only generate pretty graphs using Graphviz:
+
+#+BEGIN_SRC emacs-lisp
+(setq goals (list ...))
+(pt-goals->png goals "path/to/file.png")
+#+END_SRC
+
+...resulting in:
+
+[[file:./docs/graph.png]]
+
+Here different colors have different meaning - green nodes represent goals that have been reached, blue ones have been started, black ones are next in line while gray ones should probably be left alone for the time being.
+
+** Usage
+Here's how it's supposed to work. You start with some general idea of your upcoming project by setting different goals:
+
+[[file:./docs/goals.png]]
+
+Next, you identify interdependencies between your goals:
+
+[[file:./docs/deps.png]]
+
+The idea is to pursue your goals in order that makes sense without distracting yourself with tasks further down the line (if you're anything like me you know what I'm talking about). Now, we've reached the first goal - laying out the rough idead of the Project Trees:
+
+[[file:./docs/first.png]]
+
+...and after some manual tests and an evening coding session you finally reach a somewhat broad choice between documenting the idea, integrating it with other tools or adding more features.
+That's the *magic*. Instead of doing what's /fun/ you are supposed to do what's /right/ for the project in the long run:
+
+[[file:./docs/magic.png]]
+
+Project Trees will help you stay focused by tracking available goals, all you need to do is follow your dreams.
+
+[[file:./docs/done.png]]
