@@ -1,4 +1,4 @@
-;; A bunch of functions for general project tracking & productivity enhencement.
+;; pt.el - A bunch of functions for general project tracking & productivity enhencement.
 
 (require 'cl)
 
@@ -153,3 +153,5 @@
              "unflatten | "
              "gvpack -array3 | "
              "neato -Tpng -n2 -o " filename))))
+
+(provide 'pt)
