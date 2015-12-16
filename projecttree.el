@@ -108,3 +108,16 @@
                  (mapcar (lambda (g)
                            (pt-goal->dot g goals))
                          goals))))
+
+(defun pt-goals->png (goals filename)
+  (let ((tmp-file (concat "/tmp/" (md5 filename) ".dot"))
+        (contents (pt-goals->dot goals)))
+    (with-temp-buffer
+      (insert contents)
+      (write-file tmp-file))
+    (shell-command-to-string
+     (concat "ccomps -y " tmp-file " | "
+             "dot | "
+             "unflatten | "
+             "gvpack -array3 | "
+             "neato -Tpng -n2 -o " filename))))
