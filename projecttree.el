@@ -23,6 +23,9 @@
 (defun pt-goal (id description state requirements)
   (list id description state requirements))
 
+(defun pt-get (goals id)
+  (assoc id goals))
+
 (defun pt-goal-id (goal)
   (nth 0 goal))
 
@@ -34,3 +37,29 @@
 
 (defun pt-goal-requirements (goal)
   (nth 3 goal))
+
+(defun pt-goal-init-p (goal)
+  (equal (pt-goal-state goal) pt-state-init))
+
+(defun pt-goal-started-p (goal)
+  (equal (pt-goal-state goal) pt-state-started))
+
+(defun pt-goal-done-p (goal)
+  (equal (pt-goal-state goal) pt-state-done))
+
+(defun pt-goal-last-p (goal goals)
+  (not (member (pt-goal-id goal)
+               (apply 'append
+                      (mapcar 'pt-goal-requirements
+                              goals))))) ;; FIXME Remove duplicates
+
+(defun pt-goal-unavailable-p (goal goals)
+  (not (pt-goal-available-p goal goals)))
+
+(defun pt-goal-available-p (goal goals)
+  (let ((req (mapcar 'pt-goal-done-p
+                     (mapcar (lambda (x)
+                               (pt-get goals x))
+                             (pt-goal-requirements goal)))))
+    (or (not req)
+        (reduce (lambda (a b) (and a b)) req))))
