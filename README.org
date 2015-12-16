@@ -1,6 +1,6 @@
 * Project Trees
 
-A bunch of ELisp functions for project planning, tracking and general productivity enhencement.
+A bunch of ELisp functions for project planning, tracking and general productivity enhancement.
 
 ** Setup
 Add this to your Emacs config:
