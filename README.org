@@ -1,3 +1,59 @@
-* Project Tree
+* Project Trees
 
-A bunch of ELisp functions for project planning, tracking and general productivity enhencement.
+A bunch of ELisp functions for project planning, tracking and general productivity enhancement.
+
+** Setup
+Add this to your Emacs config:
+
+#+BEGIN_SRC emacs-lisp
+(add-to-list 'load-path "path/to/pt.el")
+(require 'pt)
+#+END_SRC
+
+** Basic usage
+At the moment you can only generate pretty graphs using Graphviz:
+
+#+BEGIN_SRC emacs-lisp
+(setq goals (list ...))
+(pt-goals->png goals "path/to/file.png")
+#+END_SRC
+
+...resulting in:
+
+#+BEGIN_CENTER
+[[file:./docs/graph.png]]
+#+END_CENTER
+
+Here different colors have different meaning - green nodes represent goals that have been reached, blue ones have been started, black ones are next in line while gray ones should probably be left alone for the time being.
+
+** Usage
+Here's how it's supposed to work. You start with some general idea of your upcoming project by setting different goals:
+
+#+BEGIN_CENTER
+[[file:./docs/goals.png]]
+#+END_CENTER
+
+Next, you identify interdependencies between your goals:
+
+#+BEGIN_CENTER
+[[file:./docs/deps.png]]
+#+END_CENTER
+
+The idea is to pursue your goals in order that makes sense without distracting yourself with tasks further down the line (if you're anything like me you know what I'm talking about). Now, we've reached the first goal - laying out the rough idead of the Project Trees:
+
+#+BEGIN_CENTER
+[[file:./docs/first.png]]
+#+END_CENTER
+
+...and after some manual tests and an evening coding session you finally reach a somewhat broad choice between documenting the idea, integrating it with other tools or adding more features.
+That's the *magic*. Instead of doing what's /fun/ you are supposed to do what's /right/ for the project in the long run:
+
+#+BEGIN_CENTER
+[[file:./docs/magic.png]]
+#+END_CENTER
+
+Project Trees will help you stay focused by tracking available goals, all you need to do is follow your dreams.
+
+#+BEGIN_CENTER
+[[file:./docs/done.png]]
+#+END_CENTER
