@@ -56,12 +56,16 @@
   (not (pt-goal-available-p goal goals)))
 
 (defun pt-goal-available-p (goal goals)
-  (let ((req (mapcar 'pt-goal-done-p
-                     (mapcar (lambda (x)
-                               (pt-get goals x))
-                             (pt-goal-requirements goal)))))
-    (or (not req)
-        (reduce (lambda (a b) (and a b)) req))))
+  (equal (pt-goal-rank goal goals) 1))
+
+(defun pt-goal-rank (goal goals)
+  (let ((reqs (pt-goal-requirements goal)))
+    (cond ((pt-goal-done-p goal) 0)
+          ((not reqs) 1)
+          (t (+ 1 (apply 'max
+                         (mapcar (lambda (r)
+                                   (pt-goal-rank (pt-get goals r) goals))
+                                 reqs)))))))
 
 (defun pt-goal-parents (goal goals)
   (let ((id (pt-goal-id goal)))
