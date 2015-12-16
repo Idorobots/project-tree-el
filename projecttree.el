@@ -56,7 +56,15 @@
   (not (pt-goal-available-p goal goals)))
 
 (defun pt-goal-available-p (goal goals)
-  (equal (pt-goal-rank goal goals) 1))
+  (cond ((not (equal (pt-goal-rank goal goals) 1)) nil)
+        ((pt-goal-last-p goal goals) t)
+        (t (<= (apply 'max
+                      (mapcar (lambda (c)
+                                (pt-goal-rank c goals))
+                              (pt-goal-children (pt-min-rank (pt-goal-parents goal goals)
+                                                             goals)
+                                                goals)))
+               1))))
 
 (defun pt-goal-rank (goal goals)
   (let ((reqs (pt-goal-requirements goal)))
@@ -67,11 +75,26 @@
                                    (pt-goal-rank (pt-get goals r) goals))
                                  reqs)))))))
 
+(defun pt-min-rank (nodes goals)
+  (pt-min-rank-acc (car nodes) (cdr nodes) goals))
+
+(defun pt-min-rank-acc (acc nodes goals)
+  (cond ((not nodes) acc)
+        ((< (pt-goal-rank acc goals)
+            (pt-goal-rank (car nodes) goals))
+         (pt-min-rank-acc acc (cdr nodes) goals))
+        (t (pt-min-rank-acc (car nodes) (cdr nodes) goals))))
+
 (defun pt-goal-parents (goal goals)
   (let ((id (pt-goal-id goal)))
     (remove-if-not (lambda (g)
                      (member id (pt-goal-requirements g)))
                    goals)))
+
+(defun pt-goal-children (goal goals)
+  (mapcar (lambda (id)
+            (pt-get goals id))
+          (pt-goal-requirements goal)))
 
 (defun pt-goal-color (goal goals)
   (cond ((pt-goal-done-p goal) pt-color-done)
