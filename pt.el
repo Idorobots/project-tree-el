@@ -50,42 +50,32 @@
 (defun pt-goal-state (goal)
   (nth 2 goal))
 
-(defun pt-goal-requirements (goal)
-  (nth 3 goal))
-
-(defun pt-goal-required-by (goal)
-  (nth 4 goal))
-
-(defun pt-goal-init-p (goal)
-  (equal (pt-goal-state goal) pt-state-init))
-
 (defun pt-goal-started-p (goal)
   (equal (pt-goal-state goal) pt-state-started))
 
 (defun pt-goal-done-p (goal)
   (equal (pt-goal-state goal) pt-state-done))
 
+(defun pt-goal-init-p (goal)
+  (equal (pt-goal-state goal) pt-state-init))
+
+(defun pt-goal-requirements (goal)
+  (nth 3 goal))
+
 (defun pt-goal-last-p (goal goals)
   (not (pt-goal-parents goal goals)))
 
-(defun pt-goal-unavailable-p (goal)
-  (not (pt-goal-available-p goal)))
-
-(defun pt-goal-available-p (goal)
-  (nth 6 goal))
+(defun pt-goal-required-by (goal)
+  (nth 4 goal))
 
 (defun pt-goal-rank (goal)
   (nth 5 goal))
 
-(defun pt-min-rank (nodes)
-  (pt-min-rank-acc (car nodes) (cdr nodes)))
+(defun pt-goal-available-p (goal)
+  (nth 6 goal))
 
-(defun pt-min-rank-acc (acc nodes)
-  (cond ((not nodes) acc)
-        ((< (pt-goal-rank acc)
-            (pt-goal-rank (car nodes)))
-         (pt-min-rank-acc acc (cdr nodes)))
-        (t (pt-min-rank-acc (car nodes) (cdr nodes)))))
+(defun pt-goal-unavailable-p (goal)
+  (not (pt-goal-available-p goal)))
 
 (defun pt-goal-parents (goal goals)
   (mapcar (lambda (id)
