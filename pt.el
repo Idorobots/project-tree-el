@@ -34,6 +34,11 @@
 (defun pt-get (goals id)
   (assoc id goals))
 
+(defun pt-get-some (goals ids)
+  (mapcar (lambda (id)
+            (pt-get goals id))
+          ids))
+
 (defun pt-set (goals goal)
   (let ((id (pt-goal-id goal)))
     (cons goal
@@ -78,14 +83,10 @@
   (not (pt-goal-available-p goal)))
 
 (defun pt-goal-parents (goal goals)
-  (mapcar (lambda (id)
-            (pt-get goals id))
-          (pt-goal-required-by goal)))
+  (pt-get-some goals (pt-goal-required-by goal)))
 
 (defun pt-goal-children (goal goals)
-  (mapcar (lambda (id)
-            (pt-get goals id))
-          (pt-goal-requirements goal)))
+  (pt-get-some goals (pt-goal-requirements goal)))
 
 (defun pt-goal-color (goal)
   (cond ((pt-goal-done-p goal) pt-color-done)
