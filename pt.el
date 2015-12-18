@@ -87,7 +87,7 @@
             (pt-get goals id))
           (pt-goal-requirements goal)))
 
-(defun pt-goal-color (goal goals)
+(defun pt-goal-color (goal)
   (cond ((pt-goal-done-p goal) pt-color-done)
         ((pt-goal-started-p goal) pt-color-started)
         ((pt-goal-init-p goal)
@@ -95,7 +95,7 @@
              pt-color-available
            pt-color-unavailable))))
 
-(defun pt-goal-fontcolor (goal goals)
+(defun pt-goal-fontcolor (goal)
   (cond ((pt-goal-done-p goal) pt-fontcolor-done)
         ((pt-goal-started-p goal) pt-fontcolor-started)
         ((pt-goal-init-p goal)
@@ -103,7 +103,7 @@
              pt-fontcolor-available
            pt-fontcolor-unavailable))))
 
-(defun pt-goal-fillcolor (goal goals)
+(defun pt-goal-fillcolor (goal)
   (if (pt-goal-last-p goal)
       pt-fillcolor-last
     pt-fillcolor-default))
@@ -215,13 +215,13 @@
          (pt-min-rank-acc acc (cdr nodes)))
         (t (pt-min-rank-acc (car nodes) (cdr nodes)))))
 
-(defun pt-goal->dot (goal goals)
+(defun pt-goal->dot (goal)
   (format "\"%s\"[label=\"%s\", fillcolor=%s, color=%s, fontcolor=%s];\n%s"
           (pt-goal-id goal)
           (pt-goal-description goal)
-          (pt-goal-fillcolor goal goals)
-          (pt-goal-color goal goals)
-          (pt-goal-fontcolor goal goals)
+          (pt-goal-fillcolor goal)
+          (pt-goal-color goal)
+          (pt-goal-fontcolor goal)
           (let ((id (pt-goal-id goal)))
             (apply 'concat
                    (mapcar (lambda (req)
@@ -234,10 +234,7 @@
           pt-graph-style
           pt-edge-style
           pt-node-style pt-fillcolor-default pt-color-unavailable pt-fontcolor-unavailable
-          (apply 'concat
-                 (mapcar (lambda (g)
-                           (pt-goal->dot g goals))
-                         goals))))
+          (apply 'concat (mapcar 'pt-goal->dot goals))))
 
 (defun pt-goals->png (goals filename)
   (let ((tmp-file (concat "/tmp/" (md5 filename) ".dot"))
