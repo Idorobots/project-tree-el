@@ -16,7 +16,7 @@
 (defvar pt-fontcolor-done "black")
 
 (defvar pt-fillcolor-default "white")
-(defvar pt-fillcolor-last "lightyellow")
+(defvar pt-fillcolor-top "lightyellow")
 
 (defvar pt-edge-style "color=gray")
 (defvar pt-node-style "shape=box, style=\"rounded,filled\", penwidth=3.0")
@@ -62,7 +62,7 @@
 (defun pt-goal-requirements (goal)
   (nth 3 goal))
 
-(defun pt-goal-last-p (goal)
+(defun pt-goal-top-p (goal)
   (not (pt-goal-required-by goal)))
 
 (defun pt-goal-required-by (goal)
@@ -104,8 +104,8 @@
            pt-fontcolor-unavailable))))
 
 (defun pt-goal-fillcolor (goal)
-  (if (pt-goal-last-p goal)
-      pt-fillcolor-last
+  (if (pt-goal-top-p goal)
+      pt-fillcolor-top
     pt-fillcolor-default))
 
 (defun pt-compute (goals)
@@ -185,7 +185,7 @@
       acc
     (let* ((g (car left))
            (a (cond ((not (equal (pt-goal-rank g) 1)) nil)
-                    ((pt-goal-last-p g) t)
+                    ((pt-goal-top-p g) t)
                     (t (<= (apply 'max
                                   (mapcar 'pt-goal-rank
                                           (pt-goal-children (pt-min-rank (pt-goal-parents g goals))
