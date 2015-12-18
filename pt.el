@@ -62,8 +62,8 @@
 (defun pt-goal-requirements (goal)
   (nth 3 goal))
 
-(defun pt-goal-last-p (goal goals)
-  (not (pt-goal-parents goal goals)))
+(defun pt-goal-last-p (goal)
+  (not (pt-goal-required-by goal)))
 
 (defun pt-goal-required-by (goal)
   (nth 4 goal))
@@ -104,7 +104,7 @@
            pt-fontcolor-unavailable))))
 
 (defun pt-goal-fillcolor (goal goals)
-  (if (pt-goal-last-p goal goals)
+  (if (pt-goal-last-p goal)
       pt-fillcolor-last
     pt-fillcolor-default))
 
@@ -185,7 +185,7 @@
       acc
     (let* ((g (car left))
            (a (cond ((not (equal (pt-goal-rank g) 1)) nil)
-                    ((pt-goal-last-p g goals) t)
+                    ((pt-goal-last-p g) t)
                     (t (<= (apply 'max
                                   (mapcar 'pt-goal-rank
                                           (pt-goal-children (pt-min-rank (pt-goal-parents g goals))
