@@ -153,19 +153,19 @@
                   (pt-compute-ranks-acc (pt-update-rank acc g 0)
                                         (cdr left)
                                         goals))
-                 ((not (pt-goal-pred g))
-                  (pt-compute-ranks-acc (pt-update-rank acc g 1)
+                 ((pt-goal-top-p g)
+                  (pt-compute-ranks-acc (pt-update-rank acc g 0)
                                         (cdr left)
                                         goals))
                  (t
                   (let ((a (pt-compute-ranks-acc acc ;; NOTE We only need these computed for the let body.
-                                                 (pt-goal-children g goals)
+                                                 (pt-goal-parents g goals)
                                                  goals)))
                     (pt-compute-ranks-acc (pt-update-rank a
                                                           g
                                                           (+ 1 (apply 'max
                                                                       (mapcar 'pt-goal-rank
-                                                                              (pt-goal-children g a)))))
+                                                                              (pt-goal-parents g a)))))
                                           (cdr left)
                                           goals))))))))
 
