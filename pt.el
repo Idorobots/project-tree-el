@@ -22,14 +22,14 @@
 (defvar pt-node-style "shape=box, style=\"rounded,filled\", penwidth=3.0")
 (defvar pt-graph-style "rankdir=LR")
 
-(defun pt-goal (id description state requirements &optional required-by rank availability)
+(defun pt-goal (id descr state pred &optional succ rank available-p)
   (list id
-        description
+        descr
         state
-        requirements
-        required-by
+        pred
+        succ
         (or rank 0)
-        availability))
+        available-p))
 
 (defun pt-get (goals id)
   (assoc id goals))
@@ -49,7 +49,7 @@
 (defun pt-goal-id (goal)
   (nth 0 goal))
 
-(defun pt-goal-description (goal)
+(defun pt-goal-descr (goal)
   (nth 1 goal))
 
 (defun pt-goal-state (goal)
@@ -64,13 +64,13 @@
 (defun pt-goal-init-p (goal)
   (equal (pt-goal-state goal) pt-state-init))
 
-(defun pt-goal-requirements (goal)
+(defun pt-goal-pred (goal)
   (nth 3 goal))
 
 (defun pt-goal-top-p (goal)
-  (not (pt-goal-required-by goal)))
+  (not (pt-goal-succ goal)))
 
-(defun pt-goal-required-by (goal)
+(defun pt-goal-succ (goal)
   (nth 4 goal))
 
 (defun pt-goal-rank (goal)
@@ -83,10 +83,10 @@
   (not (pt-goal-available-p goal)))
 
 (defun pt-goal-parents (goal goals)
-  (pt-get-some goals (pt-goal-required-by goal)))
+  (pt-get-some goals (pt-goal-succ goal)))
 
 (defun pt-goal-children (goal goals)
-  (pt-get-some goals (pt-goal-requirements goal)))
+  (pt-get-some goals (pt-goal-pred goal)))
 
 (defun pt-goal-color (goal)
   (cond ((pt-goal-done-p goal) pt-color-done)
@@ -112,32 +112,32 @@
 (defun pt-compute (goals)
   (pt-compute-availability
    (pt-compute-ranks
-    (pt-compute-parents goals))))
+    (pt-compute-succ goals))))
 
-(defun pt-compute-parents (goals)
-  (pt-compute-parents-acc goals goals))
+(defun pt-compute-succ (goals)
+  (pt-compute-succ-acc goals goals))
 
-(defun pt-compute-parents-acc (acc goals)
+(defun pt-compute-succ-acc (acc goals)
   (if (not goals)
       acc
     (let ((g (car goals)))
-      (pt-compute-parents-acc (pt-update-parents acc
-                                                 (pt-goal-requirements g)
-                                                 (pt-goal-id g))
-                              (cdr goals)))))
+      (pt-compute-succ-acc (pt-update-succ acc
+                                           (pt-goal-pred g)
+                                           (pt-goal-id g))
+                           (cdr goals)))))
 
-(defun pt-update-parents (goals ids parent-id)
+(defun pt-update-succ (goals ids succ-id)
   (if (not ids)
       goals
     (let ((g (pt-get goals (car ids))))
-      (pt-update-parents (pt-set goals
-                                 (pt-goal (pt-goal-id g)
-                                          (pt-goal-description g)
-                                          (pt-goal-state g)
-                                          (pt-goal-requirements g)
-                                          (cons parent-id (pt-goal-required-by g))))
-                         (cdr ids)
-                         parent-id))))
+      (pt-update-succ (pt-set goals
+                              (pt-goal (pt-goal-id g)
+                                       (pt-goal-descr g)
+                                       (pt-goal-state g)
+                                       (pt-goal-pred g)
+                                       (cons succ-id (pt-goal-succ g))))
+                      (cdr ids)
+                      succ-id))))
 
 (defun pt-compute-ranks (goals)
   (pt-compute-ranks-acc '() goals goals))
@@ -153,7 +153,7 @@
                   (pt-compute-ranks-acc (pt-update-rank acc g 0)
                                         (cdr left)
                                         goals))
-                 ((not (pt-goal-requirements g))
+                 ((not (pt-goal-pred g))
                   (pt-compute-ranks-acc (pt-update-rank acc g 1)
                                         (cdr left)
                                         goals))
@@ -172,10 +172,10 @@
 (defun pt-update-rank (goals goal rank)
   (pt-set goals
           (pt-goal (pt-goal-id goal)
-                   (pt-goal-description goal)
+                   (pt-goal-descr goal)
                    (pt-goal-state goal)
-                   (pt-goal-requirements goal)
-                   (pt-goal-required-by goal)
+                   (pt-goal-pred goal)
+                   (pt-goal-succ goal)
                    rank)))
 
 (defun pt-compute-availability (goals)
@@ -192,17 +192,17 @@
                                           (pt-goal-children (pt-min-rank (pt-goal-parents g goals))
                                                             goals)))
                            1)))))
-      (pt-compute-availability-acc (pt-update-availability acc g a)
+      (pt-compute-availability-acc (pt-update-available-p acc g a)
                                    (cdr left)
                                    goals))))
 
-(defun pt-update-availability (goals goal available-p)
+(defun pt-update-available-p (goals goal available-p)
   (pt-set goals
           (pt-goal (pt-goal-id goal)
-                   (pt-goal-description goal)
+                   (pt-goal-descr goal)
                    (pt-goal-state goal)
-                   (pt-goal-requirements goal)
-                   (pt-goal-required-by goal)
+                   (pt-goal-pred goal)
+                   (pt-goal-succ goal)
                    (pt-goal-rank goal)
                    available-p)))
 
@@ -219,16 +219,15 @@
 (defun pt-goal->dot (goal)
   (format "\"%s\"[label=\"%s\", fillcolor=%s, color=%s, fontcolor=%s];\n%s"
           (pt-goal-id goal)
-          (pt-goal-description goal)
+          (pt-goal-descr goal)
           (pt-goal-fillcolor goal)
           (pt-goal-color goal)
           (pt-goal-fontcolor goal)
           (let ((id (pt-goal-id goal)))
             (apply 'concat
                    (mapcar (lambda (req)
-                             (format "\"%s\" -> \"%s\";\n"
-                                     req id))
-                           (pt-goal-requirements goal))))))
+                             (format "\"%s\" -> \"%s\";\n" req id))
+                           (pt-goal-pred goal))))))
 
 (defun pt-goals->dot (goals)
   (format "digraph PT {\n%s;\nedge[%s];\nnode[%s, fillcolor=%s, color=%s, fontcolor=%s];\n%s}"
