@@ -67,11 +67,11 @@
 (defun pt-goal-pred (goal)
   (nth 3 goal))
 
-(defun pt-goal-top-p (goal)
-  (not (pt-goal-succ goal)))
-
 (defun pt-goal-succ (goal)
   (nth 4 goal))
+
+(defun pt-goal-top-p (goal)
+  (not (pt-goal-succ goal)))
 
 (defun pt-goal-rank (goal)
   (nth 5 goal))
@@ -233,7 +233,10 @@
   (format "digraph PT {\n%s;\nedge[%s];\nnode[%s, fillcolor=%s, color=%s, fontcolor=%s];\n%s}"
           pt-graph-style
           pt-edge-style
-          pt-node-style pt-fillcolor-default pt-color-unavailable pt-fontcolor-unavailable
+          pt-node-style
+          pt-fillcolor-default
+          pt-color-unavailable
+          pt-fontcolor-unavailable
           (apply 'concat (mapcar 'pt-goal->dot goals))))
 
 (defun pt-goals->png (goals filename)
