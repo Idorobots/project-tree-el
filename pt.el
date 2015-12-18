@@ -22,8 +22,14 @@
 (defvar pt-node-style "shape=box, style=\"rounded,filled\", penwidth=3.0")
 (defvar pt-graph-style "rankdir=LR")
 
-(defun pt-goal (id description state requirements)
-  (list id description state requirements))
+(defun pt-goal (id description state requirements &optional required-by rank availability)
+  (list id
+        description
+        state
+        requirements
+        required-by
+        (or rank 0)
+        availability))
 
 (defun pt-get (goals id)
   (assoc id goals))
