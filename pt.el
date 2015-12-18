@@ -179,22 +179,37 @@
                    rank)))
 
 (defun pt-compute-availability (goals)
-  (pt-compute-availability-acc '() goals goals))
+  (let ((sgs (mapcar (lambda (g)
+                       (pt-direct-subgraph g goals))
+                     (remove-if (lambda (g)
+                                  (not (pt-goal-top-p g)))
+                                goals))))
+    (pt-compute-availability-acc goals
+                                 sgs
+                                 (mapcar (lambda (s)
+                                           (apply 'max
+                                                  (mapcar 'pt-goal-rank s)))
+                                         sgs))))
 
-(defun pt-compute-availability-acc (acc left goals)
+(defun pt-compute-availability-acc (acc sub-graphs ranks)
+  (if (not sub-graphs)
+      acc
+    (pt-compute-availability-acc (pt-update-availability-acc acc
+                                                             (car sub-graphs)
+                                                             (car ranks))
+                                 (cdr sub-graphs)
+                                 (cdr ranks))))
+
+(defun pt-update-availability-acc (acc left rank)
   (if (not left)
       acc
-    (let* ((g (car left))
-           (a (cond ((not (equal (pt-goal-rank g) 1)) nil)
-                    ((pt-goal-top-p g) t)
-                    (t (<= (apply 'max
-                                  (mapcar 'pt-goal-rank
-                                          (pt-goal-children (pt-min-rank (pt-goal-parents g goals))
-                                                            goals)))
-                           1)))))
-      (pt-compute-availability-acc (pt-update-available-p acc g a)
-                                   (cdr left)
-                                   goals))))
+    (let ((g (car left)))
+      (pt-update-availability-acc (pt-update-available-p acc
+                                                         g
+                                                         (or (pt-goal-available-p g)
+                                                             (equal (pt-goal-rank g) rank)))
+                                  (cdr left)
+                                  rank))))
 
 (defun pt-update-available-p (goals goal available-p)
   (pt-set goals
@@ -205,16 +220,6 @@
                    (pt-goal-succ goal)
                    (pt-goal-rank goal)
                    available-p)))
-
-(defun pt-min-rank (nodes)
-  (pt-min-rank-acc (car nodes) (cdr nodes)))
-
-(defun pt-min-rank-acc (acc nodes)
-  (cond ((not nodes) acc)
-        ((< (pt-goal-rank acc)
-            (pt-goal-rank (car nodes)))
-         (pt-min-rank-acc acc (cdr nodes)))
-        (t (pt-min-rank-acc (car nodes) (cdr nodes)))))
 
 (defun pt-all (f goal goals)
   (pt-all-acc f
