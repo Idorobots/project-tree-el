@@ -123,6 +123,23 @@
       pt-fillcolor-last
     pt-fillcolor-default))
 
+(defun pt-compute (goals)
+  (pt-compute-availability
+   (pt-compute-ranks
+    (pt-compute-parents goals))))
+
+(defun pt-compute-parents (goals)
+  ;; TODO compute parents
+  goals)
+
+(defun pt-compute-ranks (goals)
+  ;; TODO compute ranks
+  goals)
+
+(defun pt-compute-availability (goals)
+  ;; TODO compute availability
+  goals)
+
 (defun pt-goal->dot (goal goals)
   (format "\"%s\"[label=\"%s\", fillcolor=%s, color=%s, fontcolor=%s];\n%s"
           (pt-goal-id goal)
