@@ -34,6 +34,13 @@
 (defun pt-get (goals id)
   (assoc id goals))
 
+(defun pt-set (goals goal)
+  (let ((id (pt-goal-id goal)))
+    (cons goal
+          (remove-if (lambda (g)
+                       (equal (pt-goal-id g) id))
+                     goals))))
+
 (defun pt-goal-id (goal)
   (nth 0 goal))
 
@@ -45,6 +52,9 @@
 
 (defun pt-goal-requirements (goal)
   (nth 3 goal))
+
+(defun pt-goal-required-by (goal)
+  (nth 4 goal))
 
 (defun pt-goal-init-p (goal)
   (equal (pt-goal-state goal) pt-state-init))
@@ -92,10 +102,9 @@
         (t (pt-min-rank-acc (car nodes) (cdr nodes) goals))))
 
 (defun pt-goal-parents (goal goals)
-  (let ((id (pt-goal-id goal)))
-    (remove-if-not (lambda (g)
-                     (member id (pt-goal-requirements g)))
-                   goals)))
+  (mapcar (lambda (id)
+            (pt-get goals id))
+          (pt-goal-required-by goal)))
 
 (defun pt-goal-children (goal goals)
   (mapcar (lambda (id)
@@ -129,8 +138,29 @@
     (pt-compute-parents goals))))
 
 (defun pt-compute-parents (goals)
-  ;; TODO compute parents
-  goals)
+  (pt-compute-parents-acc goals goals))
+
+(defun pt-compute-parents-acc (acc goals)
+  (if (not goals)
+      acc
+    (let ((g (car goals)))
+      (pt-compute-parents-acc (pt-update-parents acc
+                                                 (pt-goal-requirements g)
+                                                 (pt-goal-id g))
+                              (cdr goals)))))
+
+(defun pt-update-parents (goals ids parent-id)
+  (if (not ids)
+      goals
+    (let ((g (pt-get goals (car ids))))
+      (pt-update-parents (pt-set goals
+                                 (pt-goal (pt-goal-id g)
+                                          (pt-goal-description g)
+                                          (pt-goal-state g)
+                                          (pt-goal-requirements g)
+                                          (cons parent-id (pt-goal-required-by g))))
+                         (cdr ids)
+                         parent-id))))
 
 (defun pt-compute-ranks (goals)
   ;; TODO compute ranks
