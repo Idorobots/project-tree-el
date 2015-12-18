@@ -72,34 +72,27 @@
   (not (pt-goal-available-p goal goals)))
 
 (defun pt-goal-available-p (goal goals)
-  (cond ((not (equal (pt-goal-rank goal goals) 1)) nil)
+  (cond ((not (equal (pt-goal-rank goal) 1)) nil)
         ((pt-goal-last-p goal goals) t)
         (t (<= (apply 'max
                       (mapcar (lambda (c)
-                                (pt-goal-rank c goals))
-                              (pt-goal-children (pt-min-rank (pt-goal-parents goal goals)
-                                                             goals)
+                                (pt-goal-rank c))
+                              (pt-goal-children (pt-min-rank (pt-goal-parents goal goals))
                                                 goals)))
                1))))
 
-(defun pt-goal-rank (goal goals)
-  (let ((reqs (pt-goal-requirements goal)))
-    (cond ((pt-goal-done-p goal) 0)
-          ((not reqs) 1)
-          (t (+ 1 (apply 'max
-                         (mapcar (lambda (r)
-                                   (pt-goal-rank (pt-get goals r) goals))
-                                 reqs)))))))
+(defun pt-goal-rank (goal)
+  (nth 5 goal))
 
-(defun pt-min-rank (nodes goals)
-  (pt-min-rank-acc (car nodes) (cdr nodes) goals))
+(defun pt-min-rank (nodes)
+  (pt-min-rank-acc (car nodes) (cdr nodes)))
 
-(defun pt-min-rank-acc (acc nodes goals)
+(defun pt-min-rank-acc (acc nodes)
   (cond ((not nodes) acc)
-        ((< (pt-goal-rank acc goals)
-            (pt-goal-rank (car nodes) goals))
-         (pt-min-rank-acc acc (cdr nodes) goals))
-        (t (pt-min-rank-acc (car nodes) (cdr nodes) goals))))
+        ((< (pt-goal-rank acc)
+            (pt-goal-rank (car nodes)))
+         (pt-min-rank-acc acc (cdr nodes)))
+        (t (pt-min-rank-acc (car nodes) (cdr nodes)))))
 
 (defun pt-goal-parents (goal goals)
   (mapcar (lambda (id)
@@ -163,8 +156,43 @@
                          parent-id))))
 
 (defun pt-compute-ranks (goals)
-  ;; TODO compute ranks
-  goals)
+  (pt-compute-ranks-acc '() goals goals))
+
+(defun pt-compute-ranks-acc (acc left goals)
+  (let ((g (car left)))
+    (cond ((not left)
+           acc) ;; NOTE Done.
+          ((pt-get acc (pt-goal-id g))
+           (pt-compute-ranks-acc acc (cdr left) goals)) ;; NOTE Skip if already processed.
+          (t
+           (cond ((pt-goal-done-p g)
+                  (pt-compute-ranks-acc (pt-update-rank acc g 0)
+                                        (cdr left)
+                                        goals))
+                 ((not (pt-goal-requirements g))
+                  (pt-compute-ranks-acc (pt-update-rank acc g 1)
+                                        (cdr left)
+                                        goals))
+                 (t
+                  (let ((a (pt-compute-ranks-acc acc ;; NOTE We only need these computed for the let body.
+                                                 (pt-goal-children g goals)
+                                                 goals)))
+                    (pt-compute-ranks-acc (pt-update-rank a
+                                                          g
+                                                          (+ 1 (apply 'max
+                                                                      (mapcar 'pt-goal-rank
+                                                                              (pt-goal-children g a)))))
+                                          (cdr left)
+                                          goals))))))))
+
+(defun pt-update-rank (goals goal rank)
+  (pt-set goals
+          (pt-goal (pt-goal-id goal)
+                   (pt-goal-description goal)
+                   (pt-goal-state goal)
+                   (pt-goal-requirements goal)
+                   (pt-goal-required-by goal)
+                   rank)))
 
 (defun pt-compute-availability (goals)
   ;; TODO compute availability
