@@ -14,7 +14,7 @@ Add this to your Emacs config:
 At the moment you can only generate pretty graphs using Graphviz:
 
 #+BEGIN_SRC emacs-lisp
-(setq goals (list ...))
+(setq goals (pt-compute (list ...)))
 (pt-goals->png goals "path/to/file.png")
 #+END_SRC
 
