@@ -68,18 +68,11 @@
 (defun pt-goal-last-p (goal goals)
   (not (pt-goal-parents goal goals)))
 
-(defun pt-goal-unavailable-p (goal goals)
-  (not (pt-goal-available-p goal goals)))
+(defun pt-goal-unavailable-p (goal)
+  (not (pt-goal-available-p goal)))
 
-(defun pt-goal-available-p (goal goals)
-  (cond ((not (equal (pt-goal-rank goal) 1)) nil)
-        ((pt-goal-last-p goal goals) t)
-        (t (<= (apply 'max
-                      (mapcar (lambda (c)
-                                (pt-goal-rank c))
-                              (pt-goal-children (pt-min-rank (pt-goal-parents goal goals))
-                                                goals)))
-               1))))
+(defun pt-goal-available-p (goal)
+  (nth 6 goal))
 
 (defun pt-goal-rank (goal)
   (nth 5 goal))
@@ -108,7 +101,7 @@
   (cond ((pt-goal-done-p goal) pt-color-done)
         ((pt-goal-started-p goal) pt-color-started)
         ((pt-goal-init-p goal)
-         (if (pt-goal-available-p goal goals)
+         (if (pt-goal-available-p goal)
              pt-color-available
            pt-color-unavailable))))
 
@@ -116,7 +109,7 @@
   (cond ((pt-goal-done-p goal) pt-fontcolor-done)
         ((pt-goal-started-p goal) pt-fontcolor-started)
         ((pt-goal-init-p goal)
-         (if (pt-goal-available-p goal goals)
+         (if (pt-goal-available-p goal)
              pt-fontcolor-available
            pt-fontcolor-unavailable))))
 
@@ -195,8 +188,42 @@
                    rank)))
 
 (defun pt-compute-availability (goals)
-  ;; TODO compute availability
-  goals)
+  (pt-compute-availability-acc '() goals goals))
+
+(defun pt-compute-availability-acc (acc left goals)
+  (if (not left)
+      acc
+    (let* ((g (car left))
+           (a (cond ((not (equal (pt-goal-rank g) 1)) nil)
+                    ((pt-goal-last-p g goals) t)
+                    (t (<= (apply 'max
+                                  (mapcar 'pt-goal-rank
+                                          (pt-goal-children (pt-min-rank (pt-goal-parents g goals))
+                                                            goals)))
+                           1)))))
+      (pt-compute-availability-acc (pt-update-availability acc g a)
+                                   (cdr left)
+                                   goals))))
+
+(defun pt-update-availability (goals goal available-p)
+  (pt-set goals
+          (pt-goal (pt-goal-id goal)
+                   (pt-goal-description goal)
+                   (pt-goal-state goal)
+                   (pt-goal-requirements goal)
+                   (pt-goal-required-by goal)
+                   (pt-goal-rank goal)
+                   available-p)))
+
+(defun pt-min-rank (nodes)
+  (pt-min-rank-acc (car nodes) (cdr nodes)))
+
+(defun pt-min-rank-acc (acc nodes)
+  (cond ((not nodes) acc)
+        ((< (pt-goal-rank acc)
+            (pt-goal-rank (car nodes)))
+         (pt-min-rank-acc acc (cdr nodes)))
+        (t (pt-min-rank-acc (car nodes) (cdr nodes)))))
 
 (defun pt-goal->dot (goal goals)
   (format "\"%s\"[label=\"%s\", fillcolor=%s, color=%s, fontcolor=%s];\n%s"
