@@ -216,6 +216,39 @@
          (pt-min-rank-acc acc (cdr nodes)))
         (t (pt-min-rank-acc (car nodes) (cdr nodes)))))
 
+(defun pt-all (f goal goals)
+  (pt-all-acc f
+              '()
+              (apply f (list goal goals))
+              goals))
+
+(defun pt-all-acc (f acc nodes goals)
+  (let ((n (car nodes)))
+    (cond ((not nodes)
+           acc)
+          ((pt-get acc (pt-goal-id (car nodes)))
+           (pt-all-acc f acc (cdr nodes) goals))
+          (t
+           (pt-all-acc f
+                       (cons n acc)
+                       (append (apply f (list n goals))
+                               (cdr nodes))
+                       goals)))))
+
+(defun pt-all-children (goal goals)
+  (pt-all 'pt-goal-children goal goals))
+
+(defun pt-all-parents (goal goals)
+  (pt-all 'pt-goal-parents goal goals))
+
+(defun pt-direct-subgraph (goal goals)
+  (cons goal (pt-all-children goal goals)))
+
+(defun pt-top-parents (goal goals)
+  (remove-if (lambda (p)
+               (not (pt-goal-top-p p)))
+             (pt-all-parents goal goals)))
+
 (defun pt-goal->dot (goal)
   (format "\"%s\"[label=\"%s\", fillcolor=%s, color=%s, fontcolor=%s];\n%s"
           (pt-goal-id goal)
