@@ -153,19 +153,19 @@
                   (pt-compute-ranks-acc (pt-update-rank acc g 0)
                                         (cdr left)
                                         goals))
-                 ((not (pt-goal-pred g))
-                  (pt-compute-ranks-acc (pt-update-rank acc g 1)
+                 ((pt-goal-top-p g)
+                  (pt-compute-ranks-acc (pt-update-rank acc g 0)
                                         (cdr left)
                                         goals))
                  (t
                   (let ((a (pt-compute-ranks-acc acc ;; NOTE We only need these computed for the let body.
-                                                 (pt-goal-children g goals)
+                                                 (pt-goal-parents g goals)
                                                  goals)))
                     (pt-compute-ranks-acc (pt-update-rank a
                                                           g
                                                           (+ 1 (apply 'max
                                                                       (mapcar 'pt-goal-rank
-                                                                              (pt-goal-children g a)))))
+                                                                              (pt-goal-parents g a)))))
                                           (cdr left)
                                           goals))))))))
 
@@ -179,22 +179,37 @@
                    rank)))
 
 (defun pt-compute-availability (goals)
-  (pt-compute-availability-acc '() goals goals))
+  (let ((sgs (mapcar (lambda (g)
+                       (pt-direct-subgraph g goals))
+                     (remove-if (lambda (g)
+                                  (not (pt-goal-top-p g)))
+                                goals))))
+    (pt-compute-availability-acc goals
+                                 sgs
+                                 (mapcar (lambda (s)
+                                           (apply 'max
+                                                  (mapcar 'pt-goal-rank s)))
+                                         sgs))))
 
-(defun pt-compute-availability-acc (acc left goals)
+(defun pt-compute-availability-acc (acc sub-graphs ranks)
+  (if (not sub-graphs)
+      acc
+    (pt-compute-availability-acc (pt-update-availability-acc acc
+                                                             (car sub-graphs)
+                                                             (car ranks))
+                                 (cdr sub-graphs)
+                                 (cdr ranks))))
+
+(defun pt-update-availability-acc (acc left rank)
   (if (not left)
       acc
-    (let* ((g (car left))
-           (a (cond ((not (equal (pt-goal-rank g) 1)) nil)
-                    ((pt-goal-top-p g) t)
-                    (t (<= (apply 'max
-                                  (mapcar 'pt-goal-rank
-                                          (pt-goal-children (pt-min-rank (pt-goal-parents g goals))
-                                                            goals)))
-                           1)))))
-      (pt-compute-availability-acc (pt-update-available-p acc g a)
-                                   (cdr left)
-                                   goals))))
+    (let ((g (car left)))
+      (pt-update-availability-acc (pt-update-available-p acc
+                                                         g
+                                                         (or (pt-goal-available-p g)
+                                                             (equal (pt-goal-rank g) rank)))
+                                  (cdr left)
+                                  rank))))
 
 (defun pt-update-available-p (goals goal available-p)
   (pt-set goals
@@ -206,15 +221,38 @@
                    (pt-goal-rank goal)
                    available-p)))
 
-(defun pt-min-rank (nodes)
-  (pt-min-rank-acc (car nodes) (cdr nodes)))
+(defun pt-all (f goal goals)
+  (pt-all-acc f
+              '()
+              (apply f (list goal goals))
+              goals))
 
-(defun pt-min-rank-acc (acc nodes)
-  (cond ((not nodes) acc)
-        ((< (pt-goal-rank acc)
-            (pt-goal-rank (car nodes)))
-         (pt-min-rank-acc acc (cdr nodes)))
-        (t (pt-min-rank-acc (car nodes) (cdr nodes)))))
+(defun pt-all-acc (f acc nodes goals)
+  (let ((n (car nodes)))
+    (cond ((not nodes)
+           acc)
+          ((pt-get acc (pt-goal-id (car nodes)))
+           (pt-all-acc f acc (cdr nodes) goals))
+          (t
+           (pt-all-acc f
+                       (cons n acc)
+                       (append (apply f (list n goals))
+                               (cdr nodes))
+                       goals)))))
+
+(defun pt-all-children (goal goals)
+  (pt-all 'pt-goal-children goal goals))
+
+(defun pt-all-parents (goal goals)
+  (pt-all 'pt-goal-parents goal goals))
+
+(defun pt-direct-subgraph (goal goals)
+  (cons goal (pt-all-children goal goals)))
+
+(defun pt-top-parents (goal goals)
+  (remove-if (lambda (p)
+               (not (pt-goal-top-p p)))
+             (pt-all-parents goal goals)))
 
 (defun pt-goal->dot (goal)
   (format "\"%s\"[label=\"%s\", fillcolor=%s, color=%s, fontcolor=%s];\n%s"
