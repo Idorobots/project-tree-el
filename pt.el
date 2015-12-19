@@ -179,37 +179,23 @@
                    rank)))
 
 (defun pt-compute-availability (goals)
-  (let ((sgs (mapcar (lambda (g)
-                       (pt-direct-subgraph g goals))
-                     (remove-if (lambda (g)
-                                  (not (pt-goal-top-p g)))
-                                goals))))
-    (pt-compute-availability-acc goals
-                                 sgs
-                                 (mapcar (lambda (s)
-                                           (apply 'max
-                                                  (mapcar 'pt-goal-rank s)))
-                                         sgs))))
+  (pt-compute-availability-acc goals goals))
 
-(defun pt-compute-availability-acc (acc sub-graphs ranks)
-  (if (not sub-graphs)
-      acc
-    (pt-compute-availability-acc (pt-update-availability-acc acc
-                                                             (car sub-graphs)
-                                                             (car ranks))
-                                 (cdr sub-graphs)
-                                 (cdr ranks))))
-
-(defun pt-update-availability-acc (acc left rank)
+(defun pt-compute-availability-acc (acc left)
   (if (not left)
       acc
-    (let ((g (car left)))
-      (pt-update-availability-acc (pt-update-available-p acc
-                                                         g
-                                                         (or (pt-goal-available-p g)
-                                                             (equal (pt-goal-rank g) rank)))
-                                  (cdr left)
-                                  rank))))
+    (let ((n (car left)))
+      (pt-compute-availability-acc
+       (pt-update-available-p acc
+                              n
+                              (pt-all-done-p (pt-goal-children n acc)))
+       (cdr left)))))
+
+(defun pt-all-done-p (goals)
+  (if (not goals)
+      t
+    (and (pt-goal-done-p (car goals))
+         (pt-all-done-p (cdr goals)))))
 
 (defun pt-update-available-p (goals goal available-p)
   (pt-set goals
