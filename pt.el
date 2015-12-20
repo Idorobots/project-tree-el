@@ -276,7 +276,7 @@
                              (format "\"%s\" -> \"%s\";\n" req id))
                            (pt-node-pred node))))))
 
-(defun pt-graph->dot (graph)
+(defun pt->dot (graph)
   (format "digraph PT {\n%s;\nedge[%s];\nnode[%s, fillcolor=%s, color=%s, fontcolor=%s];\n%s}"
           pt-graph-style
           pt-edge-style
@@ -289,9 +289,9 @@
                          (sort graph
                                'pt-lexical-ordering)))))
 
-(defun pt-graph->png (graph filename)
+(defun pt->png (graph filename)
   (let ((tmp-file (concat "/tmp/" (md5 filename) ".dot"))
-        (contents (pt-graph->dot graph)))
+        (contents (pt->dot graph)))
     (with-temp-buffer
       (insert contents)
       (write-file tmp-file))
