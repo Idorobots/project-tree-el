@@ -24,11 +24,13 @@
 
 
 (defun pt (&rest nodes)
+  "Function builds PTs. `nodes' are the same as args passed to `pt-node'."
   (pt-compute (mapcar (lambda (n)
                         (apply 'pt-node n))
                       nodes)))
 
 (defun pt-node (id descr &optional pred state succ rank available-p)
+  "`pred' is a list of node `id's. `succ', `rank' and `available-p' are recomputed automatically, best left unasigned."
   (list id
         descr
         (or state pt-state-init)
@@ -38,7 +40,7 @@
         available-p))
 
 (defun pt-get (graph id)
-  (assoc id graph))
+  (assoc id graph)) ;; NOTE Can be used as a predicate as well.
 
 (defun pt-get-some (graph ids)
   (remove-if 'not
@@ -117,7 +119,9 @@
     pt-fillcolor-default))
 
 (defun pt-compute (graph)
-  (pt-compute-ranks ;; NOTE Availability checks perform local rank computation.
+  "Computes `succ', `rank' and `available-p' for each node. Does not alter graph structure."
+  (pt-compute-ranks
+   ;; NOTE Availability checks perform local rank computation. This is left here for completeness.
    (pt-compute-availability
     (pt-compute-succ graph))))
 
@@ -154,9 +158,9 @@
 (defun pt-compute-ranks-iter (acc left graph)
   (let ((n (car left)))
     (cond ((not left)
-           acc) ;; NOTE Done.
+           acc)
           ((pt-get acc (pt-node-id n))
-           (pt-compute-ranks-iter acc (cdr left) graph)) ;; NOTE Skip if already processed.
+           (pt-compute-ranks-iter acc (cdr left) graph))
           (t
            (pt-compute-ranks-iter (cond ((pt-node-done-p n)
                                          (pt-update-rank acc n 0))
