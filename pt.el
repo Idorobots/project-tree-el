@@ -22,10 +22,10 @@
 (defvar pt-node-style "shape=box, style=\"rounded,filled\", penwidth=3.0")
 (defvar pt-graph-style "rankdir=LR")
 
-(defun pt-goal (id descr state pred &optional succ rank available-p)
+(defun pt-goal (id descr &optional pred state succ rank available-p)
   (list id
         descr
-        state
+        (or state pt-state-init)
         pred
         succ
         (or rank 0)
@@ -134,8 +134,8 @@
       (pt-update-succ (pt-set goals
                               (pt-goal (pt-goal-id g)
                                        (pt-goal-descr g)
-                                       (pt-goal-state g)
                                        (pt-goal-pred g)
+                                       (pt-goal-state g)
                                        (cons succ-id (pt-goal-succ g))
                                        (pt-goal-rank g)
                                        (pt-goal-available-p g)))
@@ -173,8 +173,8 @@
   (pt-set goals
           (pt-goal (pt-goal-id goal)
                    (pt-goal-descr goal)
-                   (pt-goal-state goal)
                    (pt-goal-pred goal)
+                   (pt-goal-state goal)
                    (pt-goal-succ goal)
                    rank
                    (pt-goal-available-p goal))))
@@ -218,8 +218,8 @@
     (pt-set goals
             (pt-goal (pt-goal-id g)
                      (pt-goal-descr g)
-                     (pt-goal-state g)
                      (pt-goal-pred g)
+                     (pt-goal-state g)
                      (pt-goal-succ g)
                      (pt-goal-rank g)
                      ;; NOTE A goal can be available or not depending on different subgraphs.
