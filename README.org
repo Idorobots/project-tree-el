@@ -1,6 +1,6 @@
 * Project Trees
 
-A bunch of ELisp functions for project planning, tracking and general productivity enhancement.
+A bunch of ELisp functions for project planning, tracking and general productivity enhancement. The name is a play on 'tech-trees' found in RTS games.
 
 ** Setup
 Add this to your Emacs config:
@@ -14,8 +14,16 @@ Add this to your Emacs config:
 At the moment you can only generate pretty graphs using Graphviz:
 
 #+BEGIN_SRC emacs-lisp
-(setq goals (pt-compute (list ...)))
-(pt-goals->png goals "path/to/file.png")
+(setq goals
+      (pt '(idea "Rough idea" () done)
+          '(tests "Manual viability tests" (idea) done)
+          '(prototype "Working prototype" (idea) done)
+          '(docs "Better docs" (prototype) started)
+          '(emacs-mode "Dedicated Emacs mode" (prototype))
+          '(full-docs "Full docs" (docs))
+          '(org-mode "Org-Mode integration" (prototype))
+          '(finished "Finished tool" (full-docs org-mode emacs-mode))))
+(pt->png goals "path/to/file.png")
 #+END_SRC
 
 ...resulting in:
@@ -39,7 +47,7 @@ Next, you identify interdependencies between your goals:
 [[file:./docs/deps.png]]
 #+END_CENTER
 
-The idea is to pursue your goals in order that makes sense without distracting yourself with tasks further down the line (if you're anything like me you know what I'm talking about). Now, we've reached the first goal - laying out the rough idead of the Project Trees:
+The idea is to pursue your goals in order that makes sense without distracting yourself with tasks further down the line (if you're anything like me you know what I'm talking about), all while giving you just enough choice of what to do next. Now, we've reached the first goal - laying out the rough idead of Project Trees:
 
 #+BEGIN_CENTER
 [[file:./docs/first.png]]
