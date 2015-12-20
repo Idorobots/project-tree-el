@@ -35,9 +35,10 @@
   (assoc id goals))
 
 (defun pt-get-some (goals ids)
-  (mapcar (lambda (id)
-            (pt-get goals id))
-          ids))
+  (remove-if 'not
+             (mapcar (lambda (id)
+                       (pt-get goals id))
+                     ids)))
 
 (defun pt-set (goals goal)
   (let ((id (pt-goal-id goal)))
@@ -110,8 +111,8 @@
     pt-fillcolor-default))
 
 (defun pt-compute (goals)
-  (pt-compute-availability
-   (pt-compute-ranks
+  (pt-compute-ranks ;; NOTE Availability checks perform local rank computation.
+   (pt-compute-availability
     (pt-compute-succ goals))))
 
 (defun pt-compute-succ (goals)
@@ -135,7 +136,9 @@
                                        (pt-goal-descr g)
                                        (pt-goal-state g)
                                        (pt-goal-pred g)
-                                       (cons succ-id (pt-goal-succ g))))
+                                       (cons succ-id (pt-goal-succ g))
+                                       (pt-goal-rank g)
+                                       (pt-goal-available-p g)))
                       (cdr ids)
                       succ-id))))
 
@@ -149,25 +152,22 @@
           ((pt-get acc (pt-goal-id g))
            (pt-compute-ranks-acc acc (cdr left) goals)) ;; NOTE Skip if already processed.
           (t
-           (cond ((pt-goal-done-p g)
-                  (pt-compute-ranks-acc (pt-update-rank acc g 0)
-                                        (cdr left)
-                                        goals))
-                 ((pt-goal-top-p g)
-                  (pt-compute-ranks-acc (pt-update-rank acc g 0)
-                                        (cdr left)
-                                        goals))
-                 (t
-                  (let ((a (pt-compute-ranks-acc acc ;; NOTE We only need these computed for the let body.
-                                                 (pt-goal-parents g goals)
-                                                 goals)))
-                    (pt-compute-ranks-acc (pt-update-rank a
+           (pt-compute-ranks-acc (cond ((pt-goal-done-p g)
+                                        (pt-update-rank acc g 0))
+                                       ((pt-goal-top-p g)
+                                        (pt-update-rank acc g 0))
+                                       (t
+                                        ;; NOTE We only need these computed for the let body.
+                                        (let ((a (pt-compute-ranks-acc acc
+                                                                       (pt-goal-parents g goals)
+                                                                       goals)))
+                                          (pt-update-rank a
                                                           g
                                                           (+ 1 (apply 'max
                                                                       (mapcar 'pt-goal-rank
-                                                                              (pt-goal-parents g a)))))
-                                          (cdr left)
-                                          goals))))))))
+                                                                              (pt-goal-parents g a))))))))
+                                 (cdr left)
+                                 goals)))))
 
 (defun pt-update-rank (goals goal rank)
   (pt-set goals
@@ -176,11 +176,14 @@
                    (pt-goal-state goal)
                    (pt-goal-pred goal)
                    (pt-goal-succ goal)
-                   rank)))
+                   rank
+                   (pt-goal-available-p goal))))
 
 (defun pt-compute-availability (goals)
   (let ((sgs (mapcar (lambda (g)
-                       (pt-direct-subgraph g goals))
+                       ;; NOTE Subgraph-local rank computation.
+                       (pt-compute-ranks
+                        (pt-direct-subgraph g goals)))
                      (remove-if (lambda (g)
                                   (not (pt-goal-top-p g)))
                                 goals))))
@@ -205,21 +208,22 @@
       acc
     (let ((g (car left)))
       (pt-update-availability-acc (pt-update-available-p acc
-                                                         g
-                                                         (or (pt-goal-available-p g)
-                                                             (equal (pt-goal-rank g) rank)))
+                                                         (pt-goal-id g)
+                                                         (equal (pt-goal-rank g) rank))
                                   (cdr left)
                                   rank))))
 
-(defun pt-update-available-p (goals goal available-p)
-  (pt-set goals
-          (pt-goal (pt-goal-id goal)
-                   (pt-goal-descr goal)
-                   (pt-goal-state goal)
-                   (pt-goal-pred goal)
-                   (pt-goal-succ goal)
-                   (pt-goal-rank goal)
-                   available-p)))
+(defun pt-update-available-p (goals id available-p)
+  (let ((g (pt-get goals id)))
+    (pt-set goals
+            (pt-goal (pt-goal-id g)
+                     (pt-goal-descr g)
+                     (pt-goal-state g)
+                     (pt-goal-pred g)
+                     (pt-goal-succ g)
+                     (pt-goal-rank g)
+                     ;; NOTE A goal can be available or not depending on different subgraphs.
+                     (or (pt-goal-available-p g) available-p)))))
 
 (defun pt-all (f goal goals)
   (pt-all-acc f
