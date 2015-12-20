@@ -1,4 +1,4 @@
-;; pt.el - A bunch of functions for general project tracking & productivity enhencement.
+;; pt.el - A bunch of functions for general project tracking & productivity enhancement.
 
 (require 'cl)
 
