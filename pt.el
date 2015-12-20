@@ -118,14 +118,14 @@
 (defun pt-compute-succ (graph)
   (pt-compute-succ-acc graph graph))
 
-(defun pt-compute-succ-acc (acc graph)
-  (if (not graph)
+(defun pt-compute-succ-acc (acc left)
+  (if (not left)
       acc
-    (let ((n (car graph)))
+    (let ((n (car left)))
       (pt-compute-succ-acc (pt-update-succ acc
                                            (pt-node-pred n)
                                            (pt-node-id n))
-                           (cdr graph)))))
+                           (cdr left)))))
 
 (defun pt-update-succ (graph ids succ-id)
   (if (not ids)
