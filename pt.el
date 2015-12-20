@@ -1,4 +1,4 @@
-;; pt.el - A bunch of functions for general project tracking & productivity enhencement.
+;; pt.el - A bunch of functions for general project tracking & productivity enhancement.
 
 (require 'cl)
 
@@ -22,7 +22,15 @@
 (defvar pt-node-style "shape=box, style=\"rounded,filled\", penwidth=3.0")
 (defvar pt-graph-style "rankdir=LR")
 
-(defun pt-goal (id descr &optional pred state succ rank available-p)
+
+(defun pt (&rest nodes)
+  "Function builds PTs. `nodes' are the same as args passed to `pt-node'."
+  (pt-compute (mapcar (lambda (n)
+                        (apply 'pt-node n))
+                      nodes)))
+
+(defun pt-node (id descr &optional pred state succ rank available-p)
+  "`pred' is a list of node `id's. `succ', `rank' and `available-p' are recomputed automatically, best left unasigned."
   (list id
         descr
         (or state pt-state-init)
@@ -31,252 +39,254 @@
         (or rank 0)
         available-p))
 
-(defun pt-get (goals id)
-  (assoc id goals))
+(defun pt-get (graph id)
+  (assoc id graph)) ;; NOTE Can be used as a predicate as well.
 
-(defun pt-get-some (goals ids)
+(defun pt-get-some (graph ids)
   (remove-if 'not
              (mapcar (lambda (id)
-                       (pt-get goals id))
+                       (pt-get graph id))
                      ids)))
 
-(defun pt-set (goals goal)
-  (let ((id (pt-goal-id goal)))
-    (cons goal
-          (remove-if (lambda (g)
-                       (equal (pt-goal-id g) id))
-                     goals))))
+(defun pt-set (graph node)
+  (let ((id (pt-node-id node)))
+    (cons node
+          (remove-if (lambda (n)
+                       (equal (pt-node-id n) id))
+                     graph))))
 
-(defun pt-goal-id (goal)
-  (nth 0 goal))
+(defun pt-node-id (node)
+  (nth 0 node))
 
-(defun pt-goal-descr (goal)
-  (nth 1 goal))
+(defun pt-node-descr (node)
+  (nth 1 node))
 
-(defun pt-goal-state (goal)
-  (nth 2 goal))
+(defun pt-node-state (node)
+  (nth 2 node))
 
-(defun pt-goal-started-p (goal)
-  (equal (pt-goal-state goal) pt-state-started))
+(defun pt-node-started-p (node)
+  (equal (pt-node-state node) pt-state-started))
 
-(defun pt-goal-done-p (goal)
-  (equal (pt-goal-state goal) pt-state-done))
+(defun pt-node-done-p (node)
+  (equal (pt-node-state node) pt-state-done))
 
-(defun pt-goal-init-p (goal)
-  (equal (pt-goal-state goal) pt-state-init))
+(defun pt-node-init-p (node)
+  (equal (pt-node-state node) pt-state-init))
 
-(defun pt-goal-pred (goal)
-  (nth 3 goal))
+(defun pt-node-pred (node)
+  (nth 3 node))
 
-(defun pt-goal-succ (goal)
-  (nth 4 goal))
+(defun pt-node-succ (node)
+  (nth 4 node))
 
-(defun pt-goal-top-p (goal)
-  (not (pt-goal-succ goal)))
+(defun pt-node-top-p (node)
+  (not (pt-node-succ node)))
 
-(defun pt-goal-rank (goal)
-  (nth 5 goal))
+(defun pt-node-rank (node)
+  (nth 5 node))
 
-(defun pt-goal-available-p (goal)
-  (nth 6 goal))
+(defun pt-node-available-p (node)
+  (nth 6 node))
 
-(defun pt-goal-unavailable-p (goal)
-  (not (pt-goal-available-p goal)))
+(defun pt-node-unavailable-p (node)
+  (not (pt-node-available-p node)))
 
-(defun pt-goal-parents (goal goals)
-  (pt-get-some goals (pt-goal-succ goal)))
+(defun pt-node-parents (node graph)
+  (pt-get-some graph (pt-node-succ node)))
 
-(defun pt-goal-children (goal goals)
-  (pt-get-some goals (pt-goal-pred goal)))
+(defun pt-node-children (node graph)
+  (pt-get-some graph (pt-node-pred node)))
 
-(defun pt-goal-color (goal)
-  (cond ((pt-goal-done-p goal) pt-color-done)
-        ((pt-goal-started-p goal) pt-color-started)
-        ((pt-goal-init-p goal)
-         (if (pt-goal-available-p goal)
+(defun pt-node-color (node)
+  (cond ((pt-node-done-p node) pt-color-done)
+        ((pt-node-started-p node) pt-color-started)
+        ((pt-node-init-p node)
+         (if (pt-node-available-p node)
              pt-color-available
            pt-color-unavailable))))
 
-(defun pt-goal-fontcolor (goal)
-  (cond ((pt-goal-done-p goal) pt-fontcolor-done)
-        ((pt-goal-started-p goal) pt-fontcolor-started)
-        ((pt-goal-init-p goal)
-         (if (pt-goal-available-p goal)
+(defun pt-node-fontcolor (node)
+  (cond ((pt-node-done-p node) pt-fontcolor-done)
+        ((pt-node-started-p node) pt-fontcolor-started)
+        ((pt-node-init-p node)
+         (if (pt-node-available-p node)
              pt-fontcolor-available
            pt-fontcolor-unavailable))))
 
-(defun pt-goal-fillcolor (goal)
-  (if (pt-goal-top-p goal)
+(defun pt-node-fillcolor (node)
+  (if (pt-node-top-p node)
       pt-fillcolor-top
     pt-fillcolor-default))
 
-(defun pt-compute (goals)
-  (pt-compute-ranks ;; NOTE Availability checks perform local rank computation.
+(defun pt-compute (graph)
+  "Computes `succ', `rank' and `available-p' for each node. Does not alter graph structure."
+  (pt-compute-ranks
+   ;; NOTE Availability checks perform local rank computation. This is left here for completeness.
    (pt-compute-availability
-    (pt-compute-succ goals))))
+    (pt-compute-succ graph))))
 
-(defun pt-compute-succ (goals)
-  (pt-compute-succ-acc goals goals))
+(defun pt-compute-succ (graph)
+  (pt-compute-succ-iter graph graph))
 
-(defun pt-compute-succ-acc (acc goals)
-  (if (not goals)
+(defun pt-compute-succ-iter (acc left)
+  (if (not left)
       acc
-    (let ((g (car goals)))
-      (pt-compute-succ-acc (pt-update-succ acc
-                                           (pt-goal-pred g)
-                                           (pt-goal-id g))
-                           (cdr goals)))))
+    (let ((n (car left)))
+      (pt-compute-succ-iter (pt-update-succ acc
+                                            (pt-node-pred n)
+                                            (pt-node-id n))
+                            (cdr left)))))
 
-(defun pt-update-succ (goals ids succ-id)
+(defun pt-update-succ (graph ids succ-id)
   (if (not ids)
-      goals
-    (let ((g (pt-get goals (car ids))))
-      (pt-update-succ (pt-set goals
-                              (pt-goal (pt-goal-id g)
-                                       (pt-goal-descr g)
-                                       (pt-goal-pred g)
-                                       (pt-goal-state g)
-                                       (cons succ-id (pt-goal-succ g))
-                                       (pt-goal-rank g)
-                                       (pt-goal-available-p g)))
+      graph
+    (let ((n (pt-get graph (car ids))))
+      (pt-update-succ (pt-set graph
+                              (pt-node (pt-node-id n)
+                                       (pt-node-descr n)
+                                       (pt-node-pred n)
+                                       (pt-node-state n)
+                                       (cons succ-id (pt-node-succ n))
+                                       (pt-node-rank n)
+                                       (pt-node-available-p n)))
                       (cdr ids)
                       succ-id))))
 
-(defun pt-compute-ranks (goals)
-  (pt-compute-ranks-acc '() goals goals))
+(defun pt-compute-ranks (graph)
+  (pt-compute-ranks-iter '() graph graph))
 
-(defun pt-compute-ranks-acc (acc left goals)
-  (let ((g (car left)))
+(defun pt-compute-ranks-iter (acc left graph)
+  (let ((n (car left)))
     (cond ((not left)
-           acc) ;; NOTE Done.
-          ((pt-get acc (pt-goal-id g))
-           (pt-compute-ranks-acc acc (cdr left) goals)) ;; NOTE Skip if already processed.
+           acc)
+          ((pt-get acc (pt-node-id n))
+           (pt-compute-ranks-iter acc (cdr left) graph))
           (t
-           (pt-compute-ranks-acc (cond ((pt-goal-done-p g)
-                                        (pt-update-rank acc g 0))
-                                       ((pt-goal-top-p g)
-                                        (pt-update-rank acc g 0))
-                                       (t
-                                        ;; NOTE We only need these computed for the let body.
-                                        (let ((a (pt-compute-ranks-acc acc
-                                                                       (pt-goal-parents g goals)
-                                                                       goals)))
-                                          (pt-update-rank a
-                                                          g
-                                                          (+ 1 (apply 'max
-                                                                      (mapcar 'pt-goal-rank
-                                                                              (pt-goal-parents g a))))))))
-                                 (cdr left)
-                                 goals)))))
+           (pt-compute-ranks-iter (cond ((pt-node-done-p n)
+                                         (pt-update-rank acc n 0))
+                                        ((pt-node-top-p n)
+                                         (pt-update-rank acc n 0))
+                                        (t
+                                         ;; NOTE We only need these computed for the let body.
+                                         (let ((a (pt-compute-ranks-iter acc
+                                                                         (pt-node-parents n graph)
+                                                                         graph)))
+                                           (pt-update-rank a
+                                                           n
+                                                           (+ 1 (apply 'max
+                                                                       (mapcar 'pt-node-rank
+                                                                               (pt-node-parents n a))))))))
+                                  (cdr left)
+                                  graph)))))
 
-(defun pt-update-rank (goals goal rank)
-  (pt-set goals
-          (pt-goal (pt-goal-id goal)
-                   (pt-goal-descr goal)
-                   (pt-goal-pred goal)
-                   (pt-goal-state goal)
-                   (pt-goal-succ goal)
+(defun pt-update-rank (graph node rank)
+  (pt-set graph
+          (pt-node (pt-node-id node)
+                   (pt-node-descr node)
+                   (pt-node-pred node)
+                   (pt-node-state node)
+                   (pt-node-succ node)
                    rank
-                   (pt-goal-available-p goal))))
+                   (pt-node-available-p node))))
 
-(defun pt-compute-availability (goals)
-  (let ((sgs (mapcar (lambda (g)
+(defun pt-compute-availability (graph)
+  (let ((sgs (mapcar (lambda (n)
                        ;; NOTE Subgraph-local rank computation.
                        (pt-compute-ranks
-                        (pt-direct-subgraph g goals)))
-                     (remove-if (lambda (g)
-                                  (not (pt-goal-top-p g)))
-                                goals))))
-    (pt-compute-availability-acc goals
-                                 sgs
-                                 (mapcar (lambda (s)
-                                           (apply 'max
-                                                  (mapcar 'pt-goal-rank s)))
-                                         sgs))))
+                        (pt-direct-subgraph n graph)))
+                     (remove-if (lambda (n)
+                                  (not (pt-node-top-p n)))
+                                graph))))
+    (pt-compute-availability-iter graph
+                                  sgs
+                                  (mapcar (lambda (s)
+                                            (apply 'max
+                                                   (mapcar 'pt-node-rank s)))
+                                          sgs))))
 
-(defun pt-compute-availability-acc (acc sub-graphs ranks)
+(defun pt-compute-availability-iter (acc sub-graphs ranks)
   (if (not sub-graphs)
       acc
-    (pt-compute-availability-acc (pt-update-availability-acc acc
-                                                             (car sub-graphs)
-                                                             (car ranks))
-                                 (cdr sub-graphs)
-                                 (cdr ranks))))
+    (pt-compute-availability-iter (pt-update-availability-iter acc
+                                                               (car sub-graphs)
+                                                               (car ranks))
+                                  (cdr sub-graphs)
+                                  (cdr ranks))))
 
-(defun pt-update-availability-acc (acc left rank)
+(defun pt-update-availability-iter (acc left rank)
   (if (not left)
       acc
-    (let ((g (car left)))
-      (pt-update-availability-acc (pt-update-available-p acc
-                                                         (pt-goal-id g)
-                                                         (equal (pt-goal-rank g) rank))
-                                  (cdr left)
-                                  rank))))
+    (let ((n (car left)))
+      (pt-update-availability-iter (pt-update-available-p acc
+                                                          (pt-node-id n)
+                                                          (equal (pt-node-rank n) rank))
+                                   (cdr left)
+                                   rank))))
 
-(defun pt-update-available-p (goals id available-p)
-  (let ((g (pt-get goals id)))
-    (pt-set goals
-            (pt-goal (pt-goal-id g)
-                     (pt-goal-descr g)
-                     (pt-goal-pred g)
-                     (pt-goal-state g)
-                     (pt-goal-succ g)
-                     (pt-goal-rank g)
-                     ;; NOTE A goal can be available or not depending on different subgraphs.
-                     (or (pt-goal-available-p g) available-p)))))
+(defun pt-update-available-p (graph id available-p)
+  (let ((n (pt-get graph id)))
+    (pt-set graph
+            (pt-node (pt-node-id n)
+                     (pt-node-descr n)
+                     (pt-node-pred n)
+                     (pt-node-state n)
+                     (pt-node-succ n)
+                     (pt-node-rank n)
+                     ;; NOTE A node can be available or not depending on different subgraphs.
+                     (or (pt-node-available-p n) available-p)))))
 
-(defun pt-all (f goal goals)
-  (pt-all-acc f
-              '()
-              (apply f (list goal goals))
-              goals))
+(defun pt-all (f node graph)
+  (pt-all-iter f
+               '()
+               (apply f (list node graph))
+               graph))
 
-(defun pt-all-acc (f acc nodes goals)
+(defun pt-all-iter (f acc nodes graph)
   (let ((n (car nodes)))
     (cond ((not nodes)
            acc)
-          ((pt-get acc (pt-goal-id (car nodes)))
-           (pt-all-acc f acc (cdr nodes) goals))
+          ((pt-get acc (pt-node-id (car nodes)))
+           (pt-all-iter f acc (cdr nodes) graph))
           (t
-           (pt-all-acc f
-                       (cons n acc)
-                       (append (apply f (list n goals))
-                               (cdr nodes))
-                       goals)))))
+           (pt-all-iter f
+                        (cons n acc)
+                        (append (apply f (list n graph))
+                                (cdr nodes))
+                        graph)))))
 
-(defun pt-all-children (goal goals)
-  (pt-all 'pt-goal-children goal goals))
+(defun pt-all-children (node graph)
+  (pt-all 'pt-node-children node graph))
 
-(defun pt-all-parents (goal goals)
-  (pt-all 'pt-goal-parents goal goals))
+(defun pt-all-parents (node graph)
+  (pt-all 'pt-node-parents node graph))
 
-(defun pt-direct-subgraph (goal goals)
-  (cons goal (pt-all-children goal goals)))
+(defun pt-direct-subgraph (node graph)
+  (cons node (pt-all-children node graph)))
 
-(defun pt-top-parents (goal goals)
+(defun pt-top-parents (node graph)
   (remove-if (lambda (p)
-               (not (pt-goal-top-p p)))
-             (pt-all-parents goal goals)))
+               (not (pt-node-top-p p)))
+             (pt-all-parents node graph)))
 
 (defun pt-lexical-ordering (a b)
   ;; FIXME This actually works for some reason.
-  (string< (pt-goal-id a)
-           (pt-goal-id b)))
+  (string< (pt-node-id a)
+           (pt-node-id b)))
 
-(defun pt-goal->dot (goal)
+(defun pt-node->dot (node)
   (format "\"%s\"[label=\"%s\", fillcolor=%s, color=%s, fontcolor=%s];\n%s"
-          (pt-goal-id goal)
-          (pt-goal-descr goal)
-          (pt-goal-fillcolor goal)
-          (pt-goal-color goal)
-          (pt-goal-fontcolor goal)
-          (let ((id (pt-goal-id goal)))
+          (pt-node-id node)
+          (pt-node-descr node)
+          (pt-node-fillcolor node)
+          (pt-node-color node)
+          (pt-node-fontcolor node)
+          (let ((id (pt-node-id node)))
             (apply 'concat
                    (mapcar (lambda (req)
                              (format "\"%s\" -> \"%s\";\n" req id))
-                           (pt-goal-pred goal))))))
+                           (pt-node-pred node))))))
 
-(defun pt-goals->dot (goals)
+(defun pt->dot (graph)
   (format "digraph PT {\n%s;\nedge[%s];\nnode[%s, fillcolor=%s, color=%s, fontcolor=%s];\n%s}"
           pt-graph-style
           pt-edge-style
@@ -285,13 +295,13 @@
           pt-color-unavailable
           pt-fontcolor-unavailable
           (apply 'concat
-                 (mapcar 'pt-goal->dot
-                         (sort goals
+                 (mapcar 'pt-node->dot
+                         (sort graph
                                'pt-lexical-ordering)))))
 
-(defun pt-goals->png (goals filename)
+(defun pt->png (graph filename)
   (let ((tmp-file (concat "/tmp/" (md5 filename) ".dot"))
-        (contents (pt-goals->dot goals)))
+        (contents (pt->dot graph)))
     (with-temp-buffer
       (insert contents)
       (write-file tmp-file))
