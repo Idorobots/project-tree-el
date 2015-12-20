@@ -22,6 +22,12 @@
 (defvar pt-node-style "shape=box, style=\"rounded,filled\", penwidth=3.0")
 (defvar pt-graph-style "rankdir=LR")
 
+
+(defun pt (&rest nodes)
+  (pt-compute (mapcar (lambda (n)
+                        (apply 'pt-node n))
+                      nodes)))
+
 (defun pt-node (id descr &optional pred state succ rank available-p)
   (list id
         descr
