@@ -22,7 +22,7 @@
 (defvar pt-node-style "shape=box, style=\"rounded,filled\", penwidth=3.0")
 (defvar pt-graph-style "rankdir=LR")
 
-(defun pt-goal (id descr pred &optional state succ rank available-p)
+(defun pt-goal (id descr &optional pred state succ rank available-p)
   (list id
         descr
         (or state pt-state-init)
