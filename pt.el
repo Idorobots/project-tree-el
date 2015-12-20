@@ -254,6 +254,11 @@
                (not (pt-goal-top-p p)))
              (pt-all-parents goal goals)))
 
+(defun pt-lexical-ordering (a b)
+  ;; FIXME This actually works for some reason.
+  (string< (pt-goal-id a)
+           (pt-goal-id b)))
+
 (defun pt-goal->dot (goal)
   (format "\"%s\"[label=\"%s\", fillcolor=%s, color=%s, fontcolor=%s];\n%s"
           (pt-goal-id goal)
@@ -275,7 +280,10 @@
           pt-fillcolor-default
           pt-color-unavailable
           pt-fontcolor-unavailable
-          (apply 'concat (mapcar 'pt-goal->dot goals))))
+          (apply 'concat
+                 (mapcar 'pt-goal->dot
+                         (sort goals
+                               'pt-lexical-ordering)))))
 
 (defun pt-goals->png (goals filename)
   (let ((tmp-file (concat "/tmp/" (md5 filename) ".dot"))
