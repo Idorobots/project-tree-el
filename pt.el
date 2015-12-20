@@ -116,16 +116,16 @@
     (pt-compute-succ graph))))
 
 (defun pt-compute-succ (graph)
-  (pt-compute-succ-acc graph graph))
+  (pt-compute-succ-iter graph graph))
 
-(defun pt-compute-succ-acc (acc left)
+(defun pt-compute-succ-iter (acc left)
   (if (not left)
       acc
     (let ((n (car left)))
-      (pt-compute-succ-acc (pt-update-succ acc
-                                           (pt-node-pred n)
-                                           (pt-node-id n))
-                           (cdr left)))))
+      (pt-compute-succ-iter (pt-update-succ acc
+                                            (pt-node-pred n)
+                                            (pt-node-id n))
+                            (cdr left)))))
 
 (defun pt-update-succ (graph ids succ-id)
   (if (not ids)
@@ -143,31 +143,31 @@
                       succ-id))))
 
 (defun pt-compute-ranks (graph)
-  (pt-compute-ranks-acc '() graph graph))
+  (pt-compute-ranks-iter '() graph graph))
 
-(defun pt-compute-ranks-acc (acc left graph)
+(defun pt-compute-ranks-iter (acc left graph)
   (let ((n (car left)))
     (cond ((not left)
            acc) ;; NOTE Done.
           ((pt-get acc (pt-node-id n))
-           (pt-compute-ranks-acc acc (cdr left) graph)) ;; NOTE Skip if already processed.
+           (pt-compute-ranks-iter acc (cdr left) graph)) ;; NOTE Skip if already processed.
           (t
-           (pt-compute-ranks-acc (cond ((pt-node-done-p n)
-                                        (pt-update-rank acc n 0))
-                                       ((pt-node-top-p n)
-                                        (pt-update-rank acc n 0))
-                                       (t
-                                        ;; NOTE We only need these computed for the let body.
-                                        (let ((a (pt-compute-ranks-acc acc
-                                                                       (pt-node-parents n graph)
-                                                                       graph)))
-                                          (pt-update-rank a
-                                                          n
-                                                          (+ 1 (apply 'max
-                                                                      (mapcar 'pt-node-rank
-                                                                              (pt-node-parents n a))))))))
-                                 (cdr left)
-                                 graph)))))
+           (pt-compute-ranks-iter (cond ((pt-node-done-p n)
+                                         (pt-update-rank acc n 0))
+                                        ((pt-node-top-p n)
+                                         (pt-update-rank acc n 0))
+                                        (t
+                                         ;; NOTE We only need these computed for the let body.
+                                         (let ((a (pt-compute-ranks-iter acc
+                                                                         (pt-node-parents n graph)
+                                                                         graph)))
+                                           (pt-update-rank a
+                                                           n
+                                                           (+ 1 (apply 'max
+                                                                       (mapcar 'pt-node-rank
+                                                                               (pt-node-parents n a))))))))
+                                  (cdr left)
+                                  graph)))))
 
 (defun pt-update-rank (graph node rank)
   (pt-set graph
@@ -187,31 +187,31 @@
                      (remove-if (lambda (n)
                                   (not (pt-node-top-p n)))
                                 graph))))
-    (pt-compute-availability-acc graph
-                                 sgs
-                                 (mapcar (lambda (s)
-                                           (apply 'max
-                                                  (mapcar 'pt-node-rank s)))
-                                         sgs))))
+    (pt-compute-availability-iter graph
+                                  sgs
+                                  (mapcar (lambda (s)
+                                            (apply 'max
+                                                   (mapcar 'pt-node-rank s)))
+                                          sgs))))
 
-(defun pt-compute-availability-acc (acc sub-graphs ranks)
+(defun pt-compute-availability-iter (acc sub-graphs ranks)
   (if (not sub-graphs)
       acc
-    (pt-compute-availability-acc (pt-update-availability-acc acc
-                                                             (car sub-graphs)
-                                                             (car ranks))
-                                 (cdr sub-graphs)
-                                 (cdr ranks))))
+    (pt-compute-availability-iter (pt-update-availability-iter acc
+                                                               (car sub-graphs)
+                                                               (car ranks))
+                                  (cdr sub-graphs)
+                                  (cdr ranks))))
 
-(defun pt-update-availability-acc (acc left rank)
+(defun pt-update-availability-iter (acc left rank)
   (if (not left)
       acc
     (let ((n (car left)))
-      (pt-update-availability-acc (pt-update-available-p acc
-                                                         (pt-node-id n)
-                                                         (equal (pt-node-rank n) rank))
-                                  (cdr left)
-                                  rank))))
+      (pt-update-availability-iter (pt-update-available-p acc
+                                                          (pt-node-id n)
+                                                          (equal (pt-node-rank n) rank))
+                                   (cdr left)
+                                   rank))))
 
 (defun pt-update-available-p (graph id available-p)
   (let ((n (pt-get graph id)))
@@ -226,23 +226,23 @@
                      (or (pt-node-available-p n) available-p)))))
 
 (defun pt-all (f node graph)
-  (pt-all-acc f
-              '()
-              (apply f (list node graph))
-              graph))
+  (pt-all-iter f
+               '()
+               (apply f (list node graph))
+               graph))
 
-(defun pt-all-acc (f acc nodes graph)
+(defun pt-all-iter (f acc nodes graph)
   (let ((n (car nodes)))
     (cond ((not nodes)
            acc)
           ((pt-get acc (pt-node-id (car nodes)))
-           (pt-all-acc f acc (cdr nodes) graph))
+           (pt-all-iter f acc (cdr nodes) graph))
           (t
-           (pt-all-acc f
-                       (cons n acc)
-                       (append (apply f (list n graph))
-                               (cdr nodes))
-                       graph)))))
+           (pt-all-iter f
+                        (cons n acc)
+                        (append (apply f (list n graph))
+                                (cdr nodes))
+                        graph)))))
 
 (defun pt-all-children (node graph)
   (pt-all 'pt-node-children node graph))
