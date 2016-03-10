@@ -5,6 +5,7 @@
 (defvar pt-state-init 'init)
 (defvar pt-state-started 'started)
 (defvar pt-state-done 'done)
+(defvar pt-state-cancelled 'cancelled)
 
 (defvar pt-color-unavailable "lightgray")
 (defvar pt-fontcolor-unavailable "lightgray")
@@ -14,6 +15,8 @@
 (defvar pt-fontcolor-started "black")
 (defvar pt-color-done "green")
 (defvar pt-fontcolor-done "black")
+(defvar pt-color-cancelled "red")
+(defvar pt-fontcolor-cancelled "black")
 
 (defvar pt-fillcolor-default "white")
 (defvar pt-fillcolor-top "lightyellow")
@@ -73,6 +76,9 @@
 (defun pt-node-init-p (node)
   (equal (pt-node-state node) pt-state-init))
 
+(defun pt-node-cancelled-p (node)
+  (equal (pt-node-state node) pt-state-cancelled))
+
 (defun pt-node-pred (node)
   (nth 3 node))
 
@@ -99,6 +105,7 @@
 
 (defun pt-node-color (node)
   (cond ((pt-node-done-p node) pt-color-done)
+        ((pt-node-cancelled-p node) pt-color-cancelled)
         ((pt-node-started-p node) pt-color-started)
         ((pt-node-init-p node)
          (if (pt-node-available-p node)
@@ -107,6 +114,7 @@
 
 (defun pt-node-fontcolor (node)
   (cond ((pt-node-done-p node) pt-fontcolor-done)
+        ((pt-node-cancelled-p node) pt-fontcolor-cancelled)
         ((pt-node-started-p node) pt-fontcolor-started)
         ((pt-node-init-p node)
          (if (pt-node-available-p node)
@@ -163,6 +171,8 @@
            (pt-compute-ranks-iter acc (cdr left) graph))
           (t
            (pt-compute-ranks-iter (cond ((pt-node-done-p n)
+                                         (pt-update-rank acc n 0))
+                                        ((pt-node-cancelled-p n)
                                          (pt-update-rank acc n 0))
                                         ((pt-node-top-p n)
                                          (pt-update-rank acc n 0))
