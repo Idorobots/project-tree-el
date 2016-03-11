@@ -21,7 +21,11 @@
 (defvar pt-fillcolor-default "white")
 (defvar pt-fillcolor-top "lightyellow")
 
-(defvar pt-edge-style "color=gray")
+(defvar pt-bgcolor "white")
+
+(defvar pt-edge-color "gray")
+
+(defvar pt-edge-style "")
 (defvar pt-node-style "shape=box, style=\"rounded,filled\", penwidth=3.0")
 (defvar pt-graph-style "rankdir=LR")
 
@@ -297,8 +301,10 @@
                            (pt-node-pred node))))))
 
 (defun pt->dot (graph)
-  (format "digraph PT {\n%s;\nedge[%s];\nnode[%s, fillcolor=%s, color=%s, fontcolor=%s];\n%s}"
+  (format "digraph PT {\nbgcolor=%s;\n%s;\nedge[color=%s, %s];\nnode[%s, fillcolor=%s, color=%s, fontcolor=%s];\n%s}"
+          pt-bgcolor
           pt-graph-style
+          pt-edge-color
           pt-edge-style
           pt-node-style
           pt-fillcolor-default
